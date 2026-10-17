@@ -14,9 +14,9 @@ import {
 } from './supabase';
 
 export const STORAGE_KEYS = {
-  GUESTS: 'aura_vows_guests_v6',
-  CONFIG: 'aura_vows_config_v6',
-  ACTIVITY: 'aura_vows_activity_v6',
+  GUESTS: 'aura_vows_guests_v7',
+  CONFIG: 'aura_vows_config_v7',
+  ACTIVITY: 'aura_vows_activity_v7',
 };
 
 // Clean legacy test caches automatically so users start fresh
