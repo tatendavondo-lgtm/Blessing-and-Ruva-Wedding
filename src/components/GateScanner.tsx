@@ -526,55 +526,10 @@ export const GateScanner: React.FC<GateScannerProps> = ({
                 Awaiting 4-Digit Pass Code
               </h3>
               <p className="text-xs max-w-xs mx-auto text-stone-600">
-                Ask arriving guests for their 4-digit pass code and type it into the keypad, or tap any guest below to test.
+                Ask arriving guests for their 4-digit pass code and enter it on the keypad to verify and admit them.
               </p>
             </div>
           )}
-
-          {/* 1-Click Demo Code Simulator */}
-          <div className="bg-white border border-stone-200 shadow-md rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-cinzel font-bold text-[#886438] uppercase tracking-wider">
-                1-Click Gate Simulator ({allGuests.length} Guests)
-              </h3>
-              <span className="text-[10px] text-stone-600">Click any pass to test:</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-              {allGuests.map((g) => {
-                const isChecked = g.checkInStatus === 'checked_in';
-                const cleanCode = g.ticketCode.replace(/\D/g, '') || g.ticketCode;
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    disabled={isVerifying}
-                    onClick={() => void handleProcessCode(cleanCode)}
-                    className={`text-left p-2.5 rounded-xl border text-xs transition-colors cursor-pointer flex items-center justify-between gap-2 ${
-                      isChecked
-                        ? 'bg-emerald-50 border-emerald-300 text-stone-900 hover:bg-emerald-100'
-                        : 'bg-white border-stone-300 hover:border-stone-400 text-stone-900 shadow-sm'
-                    }`}
-                  >
-                    <div className="truncate">
-                      <strong className="block truncate font-semibold text-stone-900">{g.name}</strong>
-                      <span className="font-mono text-[11px] text-[#886438] font-bold">Pass: {cleanCode}</span>
-                    </div>
-
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded font-mono shrink-0 font-bold ${
-                        isChecked
-                          ? 'bg-emerald-700 text-white'
-                          : 'bg-[#CFB28A] text-black'
-                      }`}
-                    >
-                      {isChecked ? 'Checked In ✓' : 'Ready'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
     </div>
