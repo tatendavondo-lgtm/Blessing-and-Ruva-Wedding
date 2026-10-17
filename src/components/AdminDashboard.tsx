@@ -257,6 +257,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
 
           <button
+            onClick={() => onRefreshData()}
+            title="Fetch live truth from Supabase"
+            className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+          >
+            <span>⚡</span>
+            <span>Refresh Supabase</span>
+          </button>
+
+          <button
             onClick={handleResetData}
             title="Wipe local cache and reset to 0 guests"
             className="px-2.5 py-2 text-rose-600 hover:text-rose-800 text-xs font-semibold cursor-pointer border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors flex items-center gap-1"

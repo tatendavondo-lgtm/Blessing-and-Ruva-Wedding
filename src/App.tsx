@@ -27,8 +27,8 @@ import { EnvelopeUnveil } from './components/EnvelopeUnveil';
 
 export default function App() {
   const [config, setConfig] = useState<WeddingConfig>(getWeddingConfig());
-  const [allGuests, setAllGuests] = useState<Guest[]>(getGuests());
-  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>(getActivityLogs());
+  const [allGuests, setAllGuests] = useState<Guest[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>([]);
 
   // Active view: default to 'invitation'
   const [currentView, setCurrentView] = useState<
@@ -78,14 +78,9 @@ export default function App() {
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState('');
 
-  // Refresh data directly from Supabase database (with localStorage fallback)
+  // Refresh data EXCLUSIVELY from Supabase database (Single Source of Truth)
   const refreshData = useCallback(async () => {
     setConfig(getWeddingConfig());
-
-    // Immediately reflect any local updates first
-    const localGuests = getGuests();
-    setAllGuests(localGuests);
-    setActivityLogs(getActivityLogs());
 
     if (isSupabaseConfigured()) {
       const [cloudGuests, cloudLogs] = await Promise.all([
@@ -94,12 +89,12 @@ export default function App() {
       ]);
 
       if (cloudGuests !== null) {
+        setAllGuests(cloudGuests);
         try {
           localStorage.setItem(STORAGE_KEYS.GUESTS, JSON.stringify(cloudGuests));
         } catch (e) {
           console.error(e);
         }
-        setAllGuests(cloudGuests);
         setActiveGuest((prev) => {
           if (!prev) return null;
           const updated = cloudGuests.find((g) => g.id === prev.id);
@@ -117,21 +112,36 @@ export default function App() {
           }
           return updated;
         });
+      } else {
+        setAllGuests([]);
       }
 
       if (cloudLogs !== null) {
+        setActivityLogs(cloudLogs);
         try {
           localStorage.setItem(STORAGE_KEYS.ACTIVITY, JSON.stringify(cloudLogs));
         } catch (e) {
           console.error(e);
         }
-        setActivityLogs(cloudLogs);
+      } else {
+        setActivityLogs([]);
       }
+    } else {
+      setAllGuests([]);
+      setActivityLogs([]);
     }
   }, []);
 
   // Initial Supabase cloud sync + continuous live polling so Admin & Gate always reflect DB state
   useEffect(() => {
+    // Purge any legacy browser caches from previous versions
+    try {
+      localStorage.removeItem('aura_vows_guests_v5');
+      localStorage.removeItem('aura_vows_activity_v5');
+      localStorage.removeItem('aura_vows_guests_v4');
+      localStorage.removeItem('aura_vows_guests_v3');
+    } catch {}
+
     void refreshData();
 
     const interval = setInterval(() => {

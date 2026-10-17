@@ -121,8 +121,7 @@ export function getGuests(): Guest[] {
   } catch {
     // fallback
   }
-  localStorage.setItem(STORAGE_KEYS.GUESTS, JSON.stringify(INITIAL_GUESTS));
-  return INITIAL_GUESTS;
+  return [];
 }
 
 /**
@@ -130,7 +129,9 @@ export function getGuests(): Guest[] {
  * Never bulk-overwrites Supabase unless syncAllToCloud is explicitly true.
  */
 export function saveGuests(guests: Guest[], syncAllToCloud = false) {
-  localStorage.setItem(STORAGE_KEYS.GUESTS, JSON.stringify(guests));
+  try {
+    localStorage.setItem(STORAGE_KEYS.GUESTS, JSON.stringify(guests));
+  } catch {}
   broadcast({ type: 'GUESTS_UPDATED', payload: guests });
   if (syncAllToCloud) {
     void syncGuestsToSupabase(guests);
@@ -144,8 +145,7 @@ export function getActivityLogs(): ActivityLogItem[] {
   } catch {
     // fallback
   }
-  localStorage.setItem(STORAGE_KEYS.ACTIVITY, JSON.stringify(INITIAL_ACTIVITY_LOGS));
-  return INITIAL_ACTIVITY_LOGS;
+  return [];
 }
 
 export function logActivity(item: Omit<ActivityLogItem, 'id' | 'timestamp'>) {
@@ -267,9 +267,11 @@ export async function scanGuestTicket(
   let guests = getGuests();
   if (isSupabaseConfigured()) {
     const cloudGuests = await fetchGuestsFromSupabase();
-    if (cloudGuests && cloudGuests.length > 0) {
+    if (cloudGuests !== null) {
       guests = cloudGuests;
-      localStorage.setItem(STORAGE_KEYS.GUESTS, JSON.stringify(cloudGuests));
+      try {
+        localStorage.setItem(STORAGE_KEYS.GUESTS, JSON.stringify(cloudGuests));
+      } catch {}
     }
   }
 
@@ -389,7 +391,7 @@ export async function toggleGuestCheckIn(
 
   if (idx === -1 && isSupabaseConfigured()) {
     const cloudGuests = await fetchGuestsFromSupabase();
-    if (cloudGuests && cloudGuests.length > 0) {
+    if (cloudGuests !== null) {
       guests = cloudGuests;
       idx = guests.findIndex((g) => g.id === guestId);
     }
