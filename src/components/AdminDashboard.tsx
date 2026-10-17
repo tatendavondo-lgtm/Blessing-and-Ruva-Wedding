@@ -160,9 +160,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleResetData = () => {
-    if (confirm('Reset all demo data back to initial mock values?')) {
+    if (confirm('Clear all local browser cache and reset to 0 guests?')) {
       resetDemoData();
+      try {
+        localStorage.removeItem('aura_vows_guests_v6');
+        localStorage.removeItem('aura_vows_activity_v6');
+        localStorage.removeItem('aura_vows_guests_v5');
+        localStorage.removeItem('aura_vows_activity_v5');
+      } catch {}
       onRefreshData();
+      alert('Local browser cache cleared! You are now starting fresh with 0 guests.');
     }
   };
 
@@ -251,10 +258,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           <button
             onClick={handleResetData}
-            title="Reset demo data"
-            className="px-2.5 py-2 text-stone-600 hover:text-stone-900 text-xs font-medium cursor-pointer"
+            title="Wipe local cache and reset to 0 guests"
+            className="px-2.5 py-2 text-rose-600 hover:text-rose-800 text-xs font-semibold cursor-pointer border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors flex items-center gap-1"
           >
-            ↺ Reset Demo
+            <span>🗑️</span>
+            <span>Wipe Local Cache (0 Guests)</span>
           </button>
         </div>
       </div>

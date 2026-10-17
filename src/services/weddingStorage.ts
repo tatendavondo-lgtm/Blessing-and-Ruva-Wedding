@@ -13,17 +13,29 @@ import {
   isSupabaseConfigured,
 } from './supabase';
 
-const STORAGE_KEYS = {
-  GUESTS: 'aura_vows_guests_v5',
-  CONFIG: 'aura_vows_config_v5',
-  ACTIVITY: 'aura_vows_activity_v5',
+export const STORAGE_KEYS = {
+  GUESTS: 'aura_vows_guests_v6',
+  CONFIG: 'aura_vows_config_v6',
+  ACTIVITY: 'aura_vows_activity_v6',
 };
+
+// Clean legacy test caches automatically so users start fresh
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('aura_vows_guests_v5');
+    localStorage.removeItem('aura_vows_activity_v5');
+    localStorage.removeItem('aura_vows_guests_v4');
+    localStorage.removeItem('aura_vows_guests_v3');
+  } catch {
+    // ignore
+  }
+}
 
 // Cross-tab real-time broadcast channel
 let broadcastChannel: BroadcastChannel | null = null;
 try {
   if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-    broadcastChannel = new BroadcastChannel('aura_vows_realtime_sync_v5');
+    broadcastChannel = new BroadcastChannel('aura_vows_realtime_sync_v6');
   }
 } catch {
   // BroadcastChannel unavailable

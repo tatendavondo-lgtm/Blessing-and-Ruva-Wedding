@@ -6,6 +6,7 @@ import {
   getGuests,
   getActivityLogs,
   subscribeRealTime,
+  STORAGE_KEYS,
 } from './services/weddingStorage';
 import {
   isSupabaseConfigured,
@@ -94,7 +95,7 @@ export default function App() {
 
       if (cloudGuests !== null) {
         try {
-          localStorage.setItem('aura_vows_guests_v5', JSON.stringify(cloudGuests));
+          localStorage.setItem(STORAGE_KEYS.GUESTS, JSON.stringify(cloudGuests));
         } catch (e) {
           console.error(e);
         }
@@ -120,7 +121,7 @@ export default function App() {
 
       if (cloudLogs !== null) {
         try {
-          localStorage.setItem('aura_vows_activity_v5', JSON.stringify(cloudLogs));
+          localStorage.setItem(STORAGE_KEYS.ACTIVITY, JSON.stringify(cloudLogs));
         } catch (e) {
           console.error(e);
         }
