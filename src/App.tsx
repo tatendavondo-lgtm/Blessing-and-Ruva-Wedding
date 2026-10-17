@@ -23,7 +23,7 @@ import { GateScanner } from './components/GateScanner';
 import { AdminDashboard } from './components/AdminDashboard';
 import { RSVPModal } from './components/RSVPModal';
 import { QRPassModal } from './components/QRPassModal';
-import { EnvelopeUnveil } from './components/EnvelopeUnveil';
+import { EnvelopeUnveil, requestNativeFullscreen } from './components/EnvelopeUnveil';
 
 export default function App() {
   const [config, setConfig] = useState<WeddingConfig>(getWeddingConfig());
@@ -313,30 +313,6 @@ export default function App() {
   };
 
   const handleOpenEnvelope = () => {
-    try {
-      const el = document.documentElement || document.body;
-      const requestMethod =
-        el.requestFullscreen ||
-        (el as any).webkitRequestFullscreen ||
-        (el as any).webkitRequestFullScreen ||
-        (el as any).mozRequestFullScreen ||
-        (el as any).msRequestFullscreen;
-
-      if (requestMethod && !document.fullscreenElement) {
-        const res = requestMethod.call(el);
-        if (res && typeof res.then === 'function') {
-          res.catch(() => {});
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    // Collapse mobile browser navigation bars
-    try {
-      window.scrollTo(0, 1);
-    } catch {}
-
     setIsEnvelopeOpened(true);
     try {
       sessionStorage.setItem('wedding_envelope_opened', 'true');
