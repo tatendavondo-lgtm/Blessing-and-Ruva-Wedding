@@ -92,7 +92,7 @@ export default function App() {
         fetchActivityLogsFromSupabase(),
       ]);
 
-      if (cloudGuests && cloudGuests.length > 0) {
+      if (cloudGuests !== null) {
         try {
           localStorage.setItem('aura_vows_guests_v5', JSON.stringify(cloudGuests));
         } catch (e) {
@@ -102,7 +102,7 @@ export default function App() {
         setActiveGuest((prev) => {
           if (!prev) return null;
           const updated = cloudGuests.find((g) => g.id === prev.id);
-          if (!updated) return prev;
+          if (!updated) return null;
           if (
             prev.name === updated.name &&
             prev.email === updated.email &&
@@ -118,7 +118,7 @@ export default function App() {
         });
       }
 
-      if (cloudLogs && cloudLogs.length > 0) {
+      if (cloudLogs !== null) {
         try {
           localStorage.setItem('aura_vows_activity_v5', JSON.stringify(cloudLogs));
         } catch (e) {
@@ -302,6 +302,30 @@ export default function App() {
   };
 
   const handleOpenEnvelope = () => {
+    try {
+      const el = document.documentElement || document.body;
+      const requestMethod =
+        el.requestFullscreen ||
+        (el as any).webkitRequestFullscreen ||
+        (el as any).webkitRequestFullScreen ||
+        (el as any).mozRequestFullScreen ||
+        (el as any).msRequestFullscreen;
+
+      if (requestMethod && !document.fullscreenElement) {
+        const res = requestMethod.call(el);
+        if (res && typeof res.then === 'function') {
+          res.catch(() => {});
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // Collapse mobile browser navigation bars
+    try {
+      window.scrollTo(0, 1);
+    } catch {}
+
     setIsEnvelopeOpened(true);
     try {
       sessionStorage.setItem('wedding_envelope_opened', 'true');

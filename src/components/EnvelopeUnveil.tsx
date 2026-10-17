@@ -15,24 +15,42 @@ export const EnvelopeUnveil: React.FC<EnvelopeUnveilProps> = ({
 }) => {
   const [isOpening, setIsOpening] = useState(false);
 
-  const handleOpenEnvelope = () => {
-    setIsOpening(true);
-
-    // Request native browser fullscreen on user interaction
+  const triggerFullscreen = () => {
     try {
-      const docEl = document.documentElement as any;
-      if (docEl.requestFullscreen) {
-        docEl.requestFullscreen().catch(() => {});
-      } else if (docEl.webkitRequestFullscreen) {
-        docEl.webkitRequestFullscreen().catch(() => {});
-      } else if (docEl.mozRequestFullScreen) {
-        docEl.mozRequestFullScreen().catch(() => {});
-      } else if (docEl.msRequestFullscreen) {
-        docEl.msRequestFullscreen().catch(() => {});
+      const el = document.documentElement || document.body;
+      const requestMethod =
+        el.requestFullscreen ||
+        (el as any).webkitRequestFullscreen ||
+        (el as any).webkitRequestFullScreen ||
+        (el as any).mozRequestFullScreen ||
+        (el as any).msRequestFullscreen;
+
+      if (requestMethod && !document.fullscreenElement) {
+        const res = requestMethod.call(el);
+        if (res && typeof res.then === 'function') {
+          res.catch(() => {});
+        }
       }
     } catch {
-      // Browser prevented or doesn't support fullscreen
+      // browser prevented
     }
+
+    // Scroll to hide address bar on mobile devices
+    try {
+      window.scrollTo(0, 1);
+    } catch {}
+  };
+
+  const handleOpenEnvelope = (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+
+    // Request native browser fullscreen immediately on user gesture
+    triggerFullscreen();
+
+    if (isOpening) return;
+    setIsOpening(true);
 
     // Sparkle effect
     try {
@@ -48,7 +66,7 @@ export const EnvelopeUnveil: React.FC<EnvelopeUnveilProps> = ({
 
     setTimeout(() => {
       onOpen();
-    }, 700);
+    }, 600);
   };
 
   return (
@@ -62,7 +80,8 @@ export const EnvelopeUnveil: React.FC<EnvelopeUnveilProps> = ({
 
       {/* Royal Envelope Card */}
       <div
-        className={`w-full max-w-sm sm:max-w-md bg-[#0D0D11] border-2 border-[#CFB28A]/50 rounded-3xl p-7 sm:p-10 text-center text-white shadow-2xl relative transition-all duration-700 gold-box-glow overflow-hidden ${
+        onClick={handleOpenEnvelope}
+        className={`w-full max-w-sm sm:max-w-md bg-[#0D0D11] border-2 border-[#CFB28A]/50 rounded-3xl p-7 sm:p-10 text-center text-white shadow-2xl relative transition-all duration-700 gold-box-glow overflow-hidden cursor-pointer ${
           isOpening ? 'scale-105 opacity-0 -translate-y-8' : 'scale-100 opacity-100 translate-y-0'
         }`}
       >
