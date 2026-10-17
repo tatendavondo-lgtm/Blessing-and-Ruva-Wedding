@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --font-script: "Pinyon Script", "Great Vibes", "Alex Brush", cursive;
+  --font-wedding: "Pinyon Script", "Great Vibes", "Alex Brush", cursive;
+  --font-serif: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --font-display: "Cinzel", "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Black & Champagne luxury palette */
+  --color-champagne-50: #FCF9F4;
+  --color-champagne-100: #F7F1E6;
+  --color-champagne-200: #EDE0CC;
+  --color-champagne-300: #E0CBAE;
+  --color-champagne-400: #CFB28A;
+  --color-champagne-500: #BE9A68;
+  --color-champagne-600: #A8814F;
+  --color-champagne-700: #886438;
+
+  --color-obsidian-950: #060608;
+  --color-obsidian-900: #0D0D10;
+  --color-obsidian-850: #131317;
+  --color-obsidian-800: #1A1A20;
+}
+
+html, body {
+  min-height: 100%;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background-color: #070709;
+  color: #F7F1E6;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent unwanted mobile horizontal drift */
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Safe area insets for notched phones */
+.safe-pb {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.safe-pt {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.font-script,
+.font-wedding {
+  font-family: "Pinyon Script", "Great Vibes", "Alex Brush", cursive;
+}
+
+.font-serif-luxury {
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+}
+
+.font-cinzel {
+  font-family: "Cinzel", "Cormorant Garamond", Georgia, serif;
+}
+
+/* Shimmering gold foil text */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #FFFDF8 0%, #F5E8D2 25%, #CFB28A 55%, #E6CAA2 80%, #FFFDF8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Subtle gold foil border animation / glow */
+.gold-box-glow {
+  box-shadow: 0 0 35px -10px rgba(207, 178, 138, 0.22), 0 20px 45px -15px rgba(0, 0, 0, 0.95);
+}
+
+@keyframes floatDust {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-12px) rotate(180deg);
+    opacity: 0.75;
+  }
+}
+
+.animate-dust {
+  animation: floatDust 7s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px 0px rgba(207, 178, 138, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px 6px rgba(207, 178, 138, 0.6);
+  }
+}
+
+.animate-seal-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* Input font size for mobile devices to prevent automatic zoom */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
