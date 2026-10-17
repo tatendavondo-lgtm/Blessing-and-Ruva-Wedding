@@ -188,13 +188,10 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
             </p>
           </div>
 
-          {/* Date & Time with High-Contrast Luxury Typography */}
-          <div className="space-y-1.5 max-w-md mx-auto py-1">
+          {/* Date with High-Contrast Luxury Typography */}
+          <div className="max-w-md mx-auto py-1">
             <p className="font-cinzel text-xl sm:text-3xl text-white font-semibold tracking-wider sm:tracking-widest uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
               Tuesday, 22 December 2026
-            </p>
-            <p className="font-serif-luxury italic text-sm sm:text-base text-[#F5E8D2] drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
-              At half past one o'clock in the afternoon (1:30 PM)
             </p>
           </div>
 

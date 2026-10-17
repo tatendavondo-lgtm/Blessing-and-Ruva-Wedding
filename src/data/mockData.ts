@@ -7,7 +7,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
   partner2: 'Ruvarashe Chakawora',
   partner2Title: 'Third born of Mr & Mrs Chakawora',
   hostingWording: 'Joyfully invite you to celebrate our union in marriage on 22 December 2026',
-  weddingDate: '2026-12-22T13:30:00Z',
+  weddingDate: '2026-12-22T00:00:00Z',
   rsvpDeadline: '2026-12-07T23:59:59Z', // First week of December
   venueName: 'Swan Creek Gardens',
   venueAddress: '899 Gletwyn Road, Shawasha Hills, Harare',
