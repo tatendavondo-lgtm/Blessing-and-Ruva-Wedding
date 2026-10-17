@@ -159,17 +159,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const handleResetData = () => {
-    if (confirm('Clear all local browser cache and reset to 0 guests?')) {
-      resetDemoData();
+  const handleResetData = async () => {
+    if (confirm('Permanently delete all guests and activity logs from Supabase and reset to 0?')) {
+      await resetDemoData();
       try {
+        localStorage.removeItem('aura_vows_guests_v7');
+        localStorage.removeItem('aura_vows_activity_v7');
         localStorage.removeItem('aura_vows_guests_v6');
         localStorage.removeItem('aura_vows_activity_v6');
         localStorage.removeItem('aura_vows_guests_v5');
         localStorage.removeItem('aura_vows_activity_v5');
       } catch {}
       onRefreshData();
-      alert('Local browser cache cleared! You are now starting fresh with 0 guests.');
+      alert('Database wiped clean! You are now starting fresh with 0 guests.');
     }
   };
 

@@ -284,10 +284,34 @@ export async function updateGuestCheckInInSupabase(
   }
 }
 
-// Save or sync guests array to Supabase (used ONLY for explicit admin bulk reset/sync)
+// Wipe all guests and activity logs in Supabase
+export async function wipeSupabaseData(): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  activeWriteCount++;
+  try {
+    await client.from('guests').delete().neq('id', '___none___');
+    await client.from('activity_logs').delete().neq('id', '___none___');
+    return true;
+  } catch (err) {
+    console.warn('Supabase wipe error:', err);
+    return false;
+  } finally {
+    activeWriteCount = Math.max(0, activeWriteCount - 1);
+    lastWriteCompletedAt = Date.now();
+  }
+}
+
+// Save or sync guests array to Supabase (wipes table if empty array is passed)
 export async function syncGuestsToSupabase(guests: Guest[]) {
   const client = getSupabaseClient();
-  if (!client || guests.length === 0) return;
+  if (!client) return;
+
+  if (guests.length === 0) {
+    await wipeSupabaseData();
+    return;
+  }
 
   activeWriteCount++;
   try {

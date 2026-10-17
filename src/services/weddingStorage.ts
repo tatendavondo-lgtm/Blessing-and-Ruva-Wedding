@@ -499,12 +499,12 @@ export function generateSingleUseIndividualToken(): { guest: Guest; url: string 
   return { guest, url };
 }
 
-export function resetDemoData() {
+export async function resetDemoData() {
   localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(INITIAL_WEDDING_CONFIG));
-  localStorage.setItem(STORAGE_KEYS.GUESTS, JSON.stringify(INITIAL_GUESTS));
-  localStorage.setItem(STORAGE_KEYS.ACTIVITY, JSON.stringify(INITIAL_ACTIVITY_LOGS));
-  broadcast({ type: 'GUESTS_UPDATED', payload: INITIAL_GUESTS });
-  void syncGuestsToSupabase(INITIAL_GUESTS);
+  localStorage.setItem(STORAGE_KEYS.GUESTS, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.ACTIVITY, JSON.stringify([]));
+  broadcast({ type: 'GUESTS_UPDATED', payload: [] });
+  await syncGuestsToSupabase([]);
 }
 
 export function exportGuestsToCSV(guests: Guest[]): string {
