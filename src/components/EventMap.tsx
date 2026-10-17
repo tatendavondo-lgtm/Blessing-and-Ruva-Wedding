@@ -41,17 +41,14 @@ export const EventMap: React.FC<EventMapProps> = ({ config }) => {
         </div>
 
         {/* Highly Visible Google Maps Button */}
-        <div className="pt-2 sm:pt-4">
+        <div className="pt-2 sm:pt-4 flex items-center justify-center">
           <a
             href={googleMapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-3 px-8 sm:px-12 py-4 sm:py-5 bg-gradient-to-r from-[#F5E8D2] via-[#CFB28A] to-[#BE9A68] hover:scale-103 active:scale-98 text-black font-cinzel text-sm sm:text-base font-bold tracking-[0.2em] uppercase rounded-full shadow-[0_10px_35px_rgba(207,178,138,0.4)] transition-all cursor-pointer"
+            className="inline-flex items-center justify-center px-8 sm:px-12 py-3.5 sm:py-4 bg-gradient-to-r from-[#F5E8D2] via-[#CFB28A] to-[#BE9A68] hover:brightness-105 active:scale-[0.98] text-stone-950 font-cinzel text-xs sm:text-sm font-bold tracking-[0.2em] uppercase rounded-full shadow-[0_10px_35px_rgba(207,178,138,0.4)] transition-all cursor-pointer border border-[#FFF0D4]/70"
           >
-            <svg className="w-5 h-5 text-black shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-            </svg>
-            <span>Open in Google Maps ↗</span>
+            <span>Open in Google Maps</span>
           </a>
         </div>
 

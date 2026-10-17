@@ -223,19 +223,17 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="w-full py-2.5 px-3 bg-[#1F1F28] hover:bg-[#2A2A38] text-stone-100 text-xs font-semibold rounded-xl transition-colors cursor-pointer border border-[#CFB28A]/40 flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 px-3 bg-[#1F1F28] hover:bg-[#2A2A38] text-stone-100 text-xs font-semibold rounded-xl transition-colors cursor-pointer border border-[#CFB28A]/40 flex items-center justify-center gap-1.5 font-cinzel tracking-wider uppercase"
               >
-                <span>🖨️</span>
                 <span>Print / Save PDF</span>
               </button>
               <a
                 href={`https://maps.google.com/?q=${encodeURIComponent(`${config.venueName}, ${config.venueAddress}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-3 bg-gradient-to-r from-[#F5E8D2] via-[#CFB28A] to-[#BE9A68] hover:opacity-95 text-black text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md font-cinzel flex items-center justify-center gap-1.5 text-center"
+                className="w-full py-2.5 px-3 bg-gradient-to-r from-[#F5E8D2] via-[#CFB28A] to-[#BE9A68] hover:brightness-105 text-stone-950 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md font-cinzel tracking-wider uppercase flex items-center justify-center gap-1.5 text-center border border-[#FFF0D4]/60"
               >
-                <span>📍</span>
-                <span>Directions to Venue ↗</span>
+                <span>Directions to Venue</span>
               </a>
             </div>
 
