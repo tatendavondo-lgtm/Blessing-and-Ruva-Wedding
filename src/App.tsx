@@ -266,19 +266,43 @@ export default function App() {
     }
   }, []);
 
-  // Resolve guest/token parameter when guest list updates
+  // Resolve guest/token parameter when guest list updates or on initial URL load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const guestParam = params.get('token') || params.get('guest') || params.get('invite');
-    if (guestParam && allGuests.length > 0) {
-      const found = allGuests.find(
-        (g) =>
-          g.inviteCode.toLowerCase() === guestParam.toLowerCase() ||
-          g.ticketCode.toLowerCase() === guestParam.toLowerCase() ||
-          g.id.toLowerCase() === guestParam.toLowerCase()
-      );
-      if (found) {
-        setActiveGuest(found);
+    const token = params.get('token');
+    const guestParam = token || params.get('guest') || params.get('invite');
+    if (guestParam) {
+      if (allGuests.length > 0) {
+        const found = allGuests.find(
+          (g) =>
+            g.inviteCode.toLowerCase() === guestParam.toLowerCase() ||
+            g.ticketCode.toLowerCase() === guestParam.toLowerCase() ||
+            g.id.toLowerCase() === guestParam.toLowerCase()
+        );
+        if (found) {
+          setActiveGuest(found);
+          return;
+        }
+      }
+      // If it's a single-use token link, immediately prepare activeGuest as an individual guest (Max 2)
+      if (token || guestParam.startsWith('pass_') || guestParam.startsWith('tok_')) {
+        setActiveGuest((prev) => {
+          if (prev && prev.inviteCode.toLowerCase() === guestParam.toLowerCase()) return prev;
+          return {
+            id: 'temp-' + guestParam,
+            name: '',
+            email: '',
+            inviteCode: guestParam,
+            ticketCode: '',
+            partySize: 2,
+            confirmedHeadcount: 0,
+            rsvpStatus: 'pending',
+            dietaryRequirements: 'None',
+            isVIP: false,
+            inviteType: 'individual',
+            checkInStatus: 'not_checked_in',
+          };
+        });
       }
     }
   }, [allGuests]);

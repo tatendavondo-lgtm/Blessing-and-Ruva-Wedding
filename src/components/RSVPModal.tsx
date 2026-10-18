@@ -46,6 +46,31 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
 
   const initializedModalRef = React.useRef(false);
 
+  // Check if this is an open Family link vs Single-Use Individual link
+  const isFamilyInvite = React.useMemo(() => {
+    // 1. If URL has token or pass_, it is ALWAYS strictly individual (Max 2)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('token') || params.get('invite')?.startsWith('pass_') || params.get('guest')?.startsWith('pass_')) {
+        return false;
+      }
+      if (params.get('type') === 'family') {
+        return true;
+      }
+    }
+    // 2. If guest record exists
+    if (guest) {
+      if (guest.inviteType === 'individual' || guest.partySize <= 2 || guest.inviteCode?.startsWith('pass_') || guest.inviteCode?.startsWith('tok_')) {
+        return false;
+      }
+      if (guest.inviteType === 'family' || guest.partySize > 2) {
+        return true;
+      }
+    }
+    // 3. Default to false: all single-use and standard links are capped at MAX 2
+    return false;
+  }, [guest]);
+
   useEffect(() => {
     // When the modal closes, reset the flag so next open cleanly populates
     if (!isOpen) {
@@ -57,12 +82,14 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
     if (!initializedModalRef.current) {
       initializedModalRef.current = true;
 
+      const maxLimit = isFamilyInvite ? 4 : 2;
+
       if (guest) {
         setName(guest.name || '');
         setEmail(guest.email && !guest.email.includes('@individual.rsvp') && !guest.email.includes('@guest.vows') ? guest.email : '');
         setPhone(guest.phone || '');
         setRsvpStatus(guest.rsvpStatus === 'declined' ? 'declined' : 'accepted');
-        setHeadcount(guest.confirmedHeadcount || (guest.partySize ? Math.min(guest.partySize, guest.inviteType === 'individual' ? 2 : 4) : 1));
+        setHeadcount(guest.confirmedHeadcount ? Math.min(guest.confirmedHeadcount, maxLimit) : (guest.partySize ? Math.min(guest.partySize, maxLimit) : 1));
         setPlusOneName(guest.plusOneName || '');
         setDietary(guest.dietaryRequirements === 'Pending' ? '' : guest.dietaryRequirements || '');
         setSongRequest(guest.songRequest || '');
@@ -84,7 +111,7 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
       setServerGeneralError('');
       setServerValidationSuccess('');
     }
-  }, [isOpen, guest?.id]);
+  }, [isOpen, guest?.id, isFamilyInvite]);
 
   if (!isOpen) return null;
 
@@ -102,6 +129,12 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
     }
 
     if (rsvpStatus === 'accepted') {
+      if (!isFamilyInvite && headcount > 2) {
+        errors.headcount = 'Individual invitations are strictly limited to a maximum of 2 guests.';
+      }
+      if (isFamilyInvite && headcount > 4) {
+        errors.headcount = 'Family group invitations are limited to a maximum of 4 guests.';
+      }
       if (!dietary.trim()) {
         errors.dietaryRequirements = 'Please specify dietary requirements (or enter "None").';
       }
@@ -120,20 +153,24 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
     try {
       setServerValidationSuccess('Verification complete. Saving response...');
 
+      const effectiveHeadcount = rsvpStatus === 'accepted' ? (isFamilyInvite ? Math.min(headcount, 4) : Math.min(headcount, 2)) : 0;
+      const effectiveToken = guest?.inviteCode || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('token') || undefined : undefined);
+
       // Save to database & persistent storage directly
       const savedGuest = submitGuestSelfRSVP({
-        existingId: guest?.id,
+        existingId: guest?.id?.startsWith('temp-') ? undefined : guest?.id,
+        token: effectiveToken,
         name: name.trim(),
         email: email.trim() || `${name.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}@guest.vows`,
         phone: phone.trim(),
         rsvpStatus,
-        partySize: Math.max(rsvpStatus === 'accepted' ? headcount : 1, guest?.partySize || 1),
-        confirmedHeadcount: rsvpStatus === 'accepted' ? headcount : 0,
-        plusOneName: headcount > 1 ? plusOneName.trim() : undefined,
+        partySize: isFamilyInvite ? 4 : 2,
+        confirmedHeadcount: effectiveHeadcount,
+        plusOneName: effectiveHeadcount > 1 ? plusOneName.trim() : undefined,
         dietaryRequirements: dietary.trim() || 'None',
         songRequest: songRequest.trim(),
         notes: notes.trim(),
-        inviteType: guest?.inviteType || (guest?.inviteCode?.startsWith('pass_') ? 'individual' : 'family'),
+        inviteType: isFamilyInvite ? 'family' : 'individual',
       });
 
       if (rsvpStatus === 'accepted') {
@@ -408,7 +445,7 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
                   <option value={1}>1 Guest (Just Me)</option>
                   <option value={2}>2 Guests (Me & +1 Accompanying Guest)</option>
                   {/* Family links can select up to 4 guests; Individual token links are strictly capped at 2 guests */}
-                  {guest?.inviteType !== 'individual' && (
+                  {isFamilyInvite && (
                     <>
                       <option value={3}>3 Guests (Family)</option>
                       <option value={4}>4 Guests (Family - Maximum)</option>
@@ -416,9 +453,9 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
                   )}
                 </select>
                 <p className="text-[10px] text-stone-400 mt-0.5">
-                  {guest?.inviteType === 'individual'
-                    ? 'Individual Token Invitation: Maximum 2 seats allowed.'
-                    : 'Family Group Invitation: Up to 4 seats allowed.'}
+                  {isFamilyInvite
+                    ? 'Family Group Invitation: Up to 4 seats allowed.'
+                    : 'Individual Single-Use Invitation: Maximum 2 seats allowed.'}
                 </p>
                 {serverErrors.headcount && (
                   <p className="text-[10px] text-rose-400 mt-1">{serverErrors.headcount}</p>

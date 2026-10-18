@@ -175,17 +175,26 @@ export function submitGuestSelfRSVP(data: {
   songRequest?: string;
   notes?: string;
   existingId?: string;
+  token?: string;
   inviteType?: 'family' | 'individual';
 }): Guest {
   const guests = getGuests();
 
-  // Check if matching by existingId or email
+  // Check if matching by existingId, token/inviteCode, or email
   let targetIndex = -1;
-  if (data.existingId) {
+  if (data.existingId && !data.existingId.startsWith('temp-')) {
     targetIndex = guests.findIndex((g) => g.id === data.existingId);
-  } else if (data.email) {
+  }
+  if (targetIndex === -1 && data.token) {
+    targetIndex = guests.findIndex((g) => g.inviteCode.toLowerCase() === data.token?.toLowerCase());
+  }
+  if (targetIndex === -1 && data.email && !data.email.includes('@guest.vows')) {
     targetIndex = guests.findIndex((g) => g.email.toLowerCase() === data.email.toLowerCase());
   }
+
+  const isIndividual = data.inviteType === 'individual' || data.token?.startsWith('pass_') || (targetIndex >= 0 && guests[targetIndex].inviteType === 'individual');
+  const maxCap = isIndividual ? 2 : 4;
+  const clampedHeadcount = data.rsvpStatus === 'accepted' ? Math.min(Math.max(data.confirmedHeadcount, 1), maxCap) : 0;
 
   let finalGuest: Guest;
 
@@ -198,19 +207,19 @@ export function submitGuestSelfRSVP(data: {
       email: data.email.trim(),
       phone: data.phone?.trim() || existing.phone,
       rsvpStatus: data.rsvpStatus,
-      confirmedHeadcount: data.rsvpStatus === 'accepted' ? data.confirmedHeadcount : 0,
-      partySize: Math.max(existing.partySize, data.confirmedHeadcount),
-      plusOneName: data.plusOneName?.trim() || undefined,
+      confirmedHeadcount: clampedHeadcount,
+      partySize: isIndividual ? 2 : Math.max(existing.partySize, clampedHeadcount),
+      plusOneName: clampedHeadcount > 1 ? (data.plusOneName?.trim() || undefined) : undefined,
       dietaryRequirements: data.dietaryRequirements?.trim() || 'None',
       songRequest: data.songRequest?.trim() || existing.songRequest,
       notes: data.notes?.trim() || existing.notes,
-      inviteType: data.inviteType || existing.inviteType || 'individual',
+      inviteType: isIndividual ? 'individual' : 'family',
     };
     guests[targetIndex] = finalGuest;
   } else {
-    // Create new guest registration (e.g. from family group open link)
+    // Create new guest registration (e.g. from family group open link or direct token)
     const id = 'g-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5);
-    const inviteCode = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    const inviteCode = data.token || data.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
     const ticketCode = generateRandom4DigitCode(guests);
 
     finalGuest = {
@@ -221,14 +230,14 @@ export function submitGuestSelfRSVP(data: {
       inviteCode,
       ticketCode,
       rsvpStatus: data.rsvpStatus,
-      partySize: data.partySize || data.confirmedHeadcount || 1,
-      confirmedHeadcount: data.rsvpStatus === 'accepted' ? data.confirmedHeadcount : 0,
-      plusOneName: data.plusOneName?.trim(),
+      partySize: isIndividual ? 2 : 4,
+      confirmedHeadcount: clampedHeadcount,
+      plusOneName: clampedHeadcount > 1 ? data.plusOneName?.trim() : undefined,
       dietaryRequirements: data.dietaryRequirements?.trim() || 'None',
       songRequest: data.songRequest?.trim(),
       notes: data.notes?.trim(),
       isVIP: false,
-      inviteType: data.inviteType || 'family',
+      inviteType: isIndividual ? 'individual' : 'family',
       checkInStatus: 'not_checked_in',
     };
     guests.unshift(finalGuest);
