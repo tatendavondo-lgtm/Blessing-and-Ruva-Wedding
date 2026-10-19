@@ -7,6 +7,7 @@ interface QRPassModalProps {
   config: WeddingConfig;
   isOpen: boolean;
   onClose: () => void;
+  onOpenRSVP?: () => void;
 }
 
 export const QRPassModal: React.FC<QRPassModalProps> = ({
@@ -14,13 +15,16 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
   config,
   isOpen,
   onClose,
+  onOpenRSVP,
 }) => {
   const [copied, setCopied] = useState(false);
   const [showQrBackup, setShowQrBackup] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
+  const isConfirmed = !!guest && guest.rsvpStatus === 'accepted';
+
   React.useEffect(() => {
-    if (!guest) return;
+    if (!guest || !isConfirmed) return;
     const cleanCode = guest.ticketCode.replace(/\D/g, '') || guest.ticketCode;
 
     QRCode.toDataURL(
@@ -39,12 +43,105 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
         }
       }
     );
-  }, [guest]);
+  }, [guest, isConfirmed]);
 
-  if (!isOpen || !guest) return null;
+  if (!isOpen) return null;
 
-  const isCheckedIn = guest.checkInStatus === 'checked_in';
-  const cleanCode = guest.ticketCode.replace(/\D/g, '') || guest.ticketCode;
+  // If guest is not confirmed (pending RSVP, no guest record, or declined), show luxury locked security pass state
+  if (!isConfirmed) {
+    const isDeclined = guest?.rsvpStatus === 'declined';
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto safe-pb safe-pt">
+        <div className="bg-[#101014] border-2 border-[#CFB28A]/50 rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full overflow-hidden my-auto max-h-[94dvh] overflow-y-auto relative animate-in fade-in zoom-in-95 duration-200 text-stone-100 gold-box-glow">
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-3.5 right-3.5 z-10 w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white flex items-center justify-center text-sm cursor-pointer transition-colors no-print"
+            aria-label="Close pass modal"
+          >
+            ✕
+          </button>
+
+          {/* Top Gala Header Strip in Rich Black & Gold */}
+          <div className="bg-[#070709] border-b border-[#CFB28A]/30 text-white p-6 pb-5 text-center space-y-1 relative">
+            <div className="inline-block border border-[#CFB28A]/50 bg-[#CFB28A]/10 px-3 py-0.5 rounded-full text-[10px] uppercase tracking-[0.25em] text-[#E8D5B5] font-cinzel mb-1">
+              Official Gate Pass · Locked 🔒
+            </div>
+            <h3 className="font-wedding text-3xl sm:text-4xl font-normal text-white">
+              {config.coupleNames}
+            </h3>
+            <p className="font-cinzel text-xs text-[#CFB28A] tracking-wider font-light">
+              {config.venueName} · Shawasha Hills
+            </p>
+          </div>
+
+          {/* Ticket Perforation Graphic */}
+          <div className="relative bg-[#070709] pb-3">
+            <div className="flex items-center justify-between px-2">
+              <div className="w-5 h-5 rounded-full bg-[#101014] -ml-5.5 border-r border-[#CFB28A]/30" />
+              <div className="border-b border-dashed border-[#CFB28A]/30 w-full mx-2" />
+              <div className="w-5 h-5 rounded-full bg-[#101014] -mr-5.5 border-l border-[#CFB28A]/30" />
+            </div>
+          </div>
+
+          {/* Pass Body Content - Locked / RSVP Required State */}
+          <div className="p-6 sm:p-8 space-y-5 text-center">
+            <div className="w-16 h-16 rounded-full bg-[#1B1B24] border-2 border-[#CFB28A]/70 mx-auto flex items-center justify-center text-3xl shadow-xl text-[#F5E8D2]">
+              🔒
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="font-cinzel text-base sm:text-lg font-bold text-white uppercase tracking-wider">
+                {isDeclined ? 'Invitation Declined' : 'RSVP Required for Entry Pass'}
+              </h4>
+              <p className="font-serif-luxury text-sm text-stone-300 max-w-xs mx-auto leading-relaxed">
+                {isDeclined
+                  ? 'You previously indicated you are unable to attend. No gate pass is active. If your schedule has changed and you would like to celebrate with Blessing & Ruvarashe, please update your response below to issue your gate entry pass.'
+                  : 'To receive your unique 4-digit express gate security code and digital admission pass for Swan Creek Gardens, you must first confirm your attendance via RSVP.'}
+              </p>
+            </div>
+
+            {guest?.name && (
+              <div className="bg-[#16161C] border border-[#CFB28A]/30 rounded-xl p-3.5 text-xs text-stone-300 space-y-1 text-left">
+                <span className="font-cinzel uppercase text-[10px] tracking-widest text-[#CFB28A] font-semibold block">
+                  Invitation Status
+                </span>
+                <p className="font-serif-luxury text-sm font-semibold text-white">
+                  Guest: <strong className="text-[#F5E8D2]">{guest.name}</strong>
+                </p>
+                <p className="text-[11px] text-stone-400">
+                  Status: <span className="uppercase font-semibold tracking-wider text-amber-300">{isDeclined ? 'Declined' : 'Pending RSVP'}</span>
+                </p>
+              </div>
+            )}
+
+            <div className="pt-2 space-y-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenRSVP?.();
+                }}
+                className="w-full py-3.5 px-6 bg-gradient-to-r from-[#F5E8D2] via-[#CFB28A] to-[#BE9A68] hover:opacity-95 text-black font-cinzel text-xs font-bold tracking-[0.2em] uppercase rounded-full shadow-lg transition-all cursor-pointer"
+              >
+                ✦ RSVP to Unlock Gate Pass ✦
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-xs text-[#CFB28A] hover:text-white underline cursor-pointer font-serif-luxury py-1 block mx-auto transition-colors"
+              >
+                Return to Invitation
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isCheckedIn = guest!.checkInStatus === 'checked_in';
+  const cleanCode = guest!.ticketCode.replace(/\D/g, '') || guest!.ticketCode;
   const digits = cleanCode.padStart(4, '0').slice(-4).split('');
 
   const handleCopyCode = () => {

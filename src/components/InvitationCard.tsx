@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Guest, WeddingConfig } from '../types/wedding';
 import { CountdownTimer } from './CountdownTimer';
 
@@ -17,6 +17,8 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
   onOpenPass,
   onNavigate: _onNavigate,
 }) => {
+  const [isPaletteModalOpen, setIsPaletteModalOpen] = useState(false);
+
   const bgImage = config.backgroundImageUrl && !config.backgroundImageUrl.includes('aistudio.google.com')
     ? config.backgroundImageUrl
     : '/assets/images/couple_portrait.jpg';
@@ -233,25 +235,63 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
           </div>
 
           {/* Clean Essential Details: Attire & Special Instructions */}
-          <div className="border-t border-[#CFB28A]/30 pt-5 sm:pt-6 max-w-md mx-auto space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-center font-serif-luxury">
-              <div className="p-3 bg-[#131318]/90 backdrop-blur-sm border border-[#CFB28A]/35 rounded-xl shadow-md">
-                <span className="font-cinzel uppercase text-[9px] sm:text-[10px] tracking-[0.2em] text-[#CFB28A] block mb-0.5 font-semibold">
-                  Attire
+          <div className="border-t border-[#CFB28A]/30 pt-5 sm:pt-6 max-w-md mx-auto space-y-3.5">
+            {/* Interactive Attire & Color Swatches Card */}
+            <div className="p-3.5 sm:p-4 bg-[#131318]/90 backdrop-blur-sm border border-[#CFB28A]/45 rounded-2xl shadow-md text-left">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-cinzel uppercase text-[9px] sm:text-[10px] tracking-[0.2em] text-[#CFB28A] font-semibold">
+                  Wedding Attire
                 </span>
-                <p className="text-white text-xs sm:text-sm font-medium">
-                  {config.attire}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsPaletteModalOpen(true)}
+                  className="font-serif-luxury italic text-[11px] text-[#CFB28A] hover:text-[#FFF5DE] underline cursor-pointer transition-colors"
+                >
+                  View Swatches ↗
+                </button>
               </div>
 
-              <div className="p-3 bg-[#131318]/90 backdrop-blur-sm border border-[#CFB28A]/35 rounded-xl shadow-md">
-                <span className="font-cinzel uppercase text-[9px] sm:text-[10px] tracking-[0.2em] text-[#CFB28A] block mb-0.5 font-semibold">
-                  Special Instruction
-                </span>
-                <p className="text-white text-xs sm:text-sm font-medium">
-                  {config.specialInstructions}
-                </p>
+              <p className="text-white text-xs sm:text-sm font-medium">
+                {config.attire}
+              </p>
+
+              {/* Quick-tap Swatch Chips */}
+              <div className="flex items-center gap-1.5 pt-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setIsPaletteModalOpen(true)}
+                  className="flex items-center gap-1.5 bg-[#1B1B22] px-2.5 py-1 rounded-full border border-stone-700 hover:border-[#CFB28A]/60 transition-colors cursor-pointer"
+                >
+                  <span className="w-3 h-3 rounded-full bg-[#0A0A0D] border border-[#CFB28A]/60 shadow-xs shrink-0" />
+                  <span className="text-[10px] text-stone-300 font-medium">Obsidian Black</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPaletteModalOpen(true)}
+                  className="flex items-center gap-1.5 bg-[#1B1B22] px-2.5 py-1 rounded-full border border-stone-700 hover:border-[#CFB28A]/60 transition-colors cursor-pointer"
+                >
+                  <span className="w-3 h-3 rounded-full bg-gradient-to-br from-[#F5E8D2] via-[#CFB28A] to-[#886438] border border-[#FFF0D4] shadow-xs shrink-0" />
+                  <span className="text-[10px] text-stone-300 font-medium">Champagne Gold</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPaletteModalOpen(true)}
+                  className="flex items-center gap-1.5 bg-[#1B1B22] px-2.5 py-1 rounded-full border border-stone-700 hover:border-[#CFB28A]/60 transition-colors cursor-pointer"
+                >
+                  <span className="w-3 h-3 rounded-full bg-[#FAF7F0] border border-stone-300 shadow-xs shrink-0" />
+                  <span className="text-[10px] text-stone-300 font-medium">Silk Ivory</span>
+                </button>
               </div>
+            </div>
+
+            {/* Special Instructions Card */}
+            <div className="p-3 bg-[#131318]/90 backdrop-blur-sm border border-[#CFB28A]/35 rounded-xl shadow-md text-center">
+              <span className="font-cinzel uppercase text-[9px] sm:text-[10px] tracking-[0.2em] text-[#CFB28A] block mb-0.5 font-semibold">
+                Special Instruction
+              </span>
+              <p className="text-white text-xs sm:text-sm font-medium">
+                {config.specialInstructions}
+              </p>
             </div>
 
             {/* RSVP Deadline */}
@@ -303,6 +343,101 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Interactive Black & Champagne Attire Palette Modal */}
+      {isPaletteModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setIsPaletteModalOpen(false)}
+        >
+          <div
+            className="bg-[#101015] border-2 border-[#CFB28A]/60 rounded-3xl max-w-sm sm:max-w-md w-full p-5 sm:p-7 space-y-4 shadow-2xl relative text-stone-100 gold-box-glow animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-[#CFB28A]/30">
+              <div>
+                <span className="font-cinzel text-[9px] uppercase tracking-[0.25em] text-[#CFB28A] font-semibold block">
+                  Wedding Dress Code & Styling
+                </span>
+                <h3 className="font-wedding text-2xl sm:text-3xl font-semibold text-white mt-0.5">
+                  Black & Champagne Palette
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsPaletteModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white flex items-center justify-center text-sm cursor-pointer transition-colors"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Description */}
+            <p className="font-serif-luxury italic text-xs sm:text-sm text-stone-300 leading-relaxed text-center">
+              Guests are cordially invited to celebrate in formal evening elegance dressed in shades of <strong className="text-[#F5E8D2]">Obsidian Black</strong>, <strong className="text-[#CFB28A]">Champagne Gold</strong>, and <strong className="text-white">Silk Ivory</strong>.
+            </p>
+
+            {/* Visual Swatch Chips Grid */}
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              {/* Obsidian Black */}
+              <div className="p-3 rounded-xl bg-[#16161E] border border-stone-800 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-[#070709] border-2 border-[#CFB28A]/40 shadow-inner shrink-0" />
+                <div>
+                  <strong className="block text-xs font-semibold text-white">Obsidian Black</strong>
+                  <span className="text-[10px] text-stone-400 font-serif-luxury">Tuxedos & Gowns</span>
+                </div>
+              </div>
+
+              {/* Champagne Gold */}
+              <div className="p-3 rounded-xl bg-[#16161E] border border-stone-800 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#F5E8D2] via-[#CFB28A] to-[#886438] border-2 border-[#FFF0D4] shadow-md shrink-0" />
+                <div>
+                  <strong className="block text-xs font-semibold text-[#F5E8D2]">Champagne Gold</strong>
+                  <span className="text-[10px] text-stone-400 font-serif-luxury">Silk & Satin</span>
+                </div>
+              </div>
+
+              {/* Silk Ivory */}
+              <div className="p-3 rounded-xl bg-[#16161E] border border-stone-800 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-[#FAF7F0] border-2 border-[#E8D5B5] shadow-sm shrink-0" />
+                <div>
+                  <strong className="block text-xs font-semibold text-white">Silk Ivory</strong>
+                  <span className="text-[10px] text-stone-400 font-serif-luxury">Crisp Shirts & Pearls</span>
+                </div>
+              </div>
+
+              {/* Warm Bronze Accent */}
+              <div className="p-3 rounded-xl bg-[#16161E] border border-stone-800 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#A8814F] to-[#5A3F1F] border-2 border-[#CFB28A]/40 shadow-inner shrink-0" />
+                <div>
+                  <strong className="block text-xs font-semibold text-stone-200">Warm Bronze</strong>
+                  <span className="text-[10px] text-stone-400 font-serif-luxury">Metallic Highlights</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Venue Footwear Recommendation Box */}
+            <div className="p-3 bg-[#181822] border border-[#CFB28A]/30 rounded-xl text-xs space-y-1">
+              <span className="font-cinzel text-[10px] text-[#CFB28A] uppercase tracking-wider font-semibold block">
+                🌿 Swan Creek Gardens Footwear Note
+              </span>
+              <p className="font-serif-luxury text-stone-300 text-[11px] leading-relaxed">
+                The celebration features private estate lawns and stone garden paths. Block heels, wedges, or dress flats are warmly recommended for ladies.
+              </p>
+            </div>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsPaletteModalOpen(false)}
+              className="w-full py-3 bg-gradient-to-r from-[#F5E8D2] via-[#CFB28A] to-[#BE9A68] hover:opacity-95 text-black font-cinzel text-xs font-bold uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-md"
+            >
+              Close Palette
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
