@@ -60,9 +60,11 @@ export const EnvelopeUnveil: React.FC<EnvelopeUnveilProps> = ({
   const [isOpening, setIsOpening] = useState(false);
 
   const handleOpenEnvelope = () => {
-    // 1. Trigger native browser fullscreen synchronously inside the raw user gesture
-    // before any React state updates, button disablement, or DOM mutations occur
-    requestNativeFullscreen();
+    try {
+      requestNativeFullscreen();
+    } catch {
+      // ignore
+    }
 
     if (isOpening) return;
     setIsOpening(true);
@@ -89,7 +91,6 @@ export const EnvelopeUnveil: React.FC<EnvelopeUnveilProps> = ({
   return (
     <div
       onClick={handleOpenEnvelope}
-      onTouchEnd={handleOpenEnvelope}
       className="fixed inset-0 z-50 bg-[#060608] flex items-center justify-center p-4 select-none overflow-hidden safe-pb safe-pt cursor-pointer"
     >
       {/* Background ambient lighting */}
