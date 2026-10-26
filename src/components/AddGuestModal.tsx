@@ -76,7 +76,10 @@ export const AddGuestModal: React.FC<AddGuestModalProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setInviteType('individual')}
+                onClick={() => {
+                  setInviteType('individual');
+                  if (partySize > 2) setPartySize(2);
+                }}
                 className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
                   inviteType === 'individual'
                     ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
@@ -85,10 +88,10 @@ export const AddGuestModal: React.FC<AddGuestModalProps> = ({
               >
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm">🔒</span>
-                  <span className="text-xs font-bold">Single-Use Token</span>
+                  <span className="text-xs font-bold">Single-Use Token (Max 2)</span>
                 </div>
                 <p className={`text-[10px] mt-0.5 leading-tight ${inviteType === 'individual' ? 'text-stone-300' : 'text-stone-500'}`}>
-                  For individuals. Permanently locked once RSVP'd (cannot be forwarded or reused).
+                  For individuals. Up to 2 seats. Permanently locked once RSVP'd.
                 </p>
               </button>
 
@@ -103,10 +106,10 @@ export const AddGuestModal: React.FC<AddGuestModalProps> = ({
               >
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm">👨‍👩‍👧‍👦</span>
-                  <span className="text-xs font-bold">Family / Open Link</span>
+                  <span className="text-xs font-bold">Family Group (Max 4)</span>
                 </div>
                 <p className={`text-[10px] mt-0.5 leading-tight ${inviteType === 'family' ? 'text-stone-300' : 'text-stone-500'}`}>
-                  For family groups without restrictions. Anyone can register their name & seats.
+                  For family groups without single-use lock. Up to 4 seats allowed.
                 </p>
               </button>
             </div>
@@ -144,14 +147,14 @@ export const AddGuestModal: React.FC<AddGuestModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-stone-700">
-                Max Party Size
+                Max Party Size ({inviteType === 'individual' ? 'Max 2' : 'Max 4'})
               </label>
               <select
                 value={partySize}
                 onChange={(e) => setPartySize(Number(e.target.value))}
                 className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-stone-600"
               >
-                {[1, 2, 3, 4, 5, 6].map((n) => (
+                {(inviteType === 'individual' ? [1, 2] : [1, 2, 3, 4]).map((n) => (
                   <option key={n} value={n}>
                     {n} {n === 1 ? 'Seat' : 'Seats'}
                   </option>

@@ -196,6 +196,24 @@ export function submitGuestSelfRSVP(data: {
   const maxCap = isIndividual ? 2 : 4;
   const clampedHeadcount = data.rsvpStatus === 'accepted' ? Math.min(Math.max(data.confirmedHeadcount, 1), maxCap) : 0;
 
+  // Capacity Enforcement: Calculate coming guests before checking in (based on RSVP confirmed headcounts)
+  if (data.rsvpStatus === 'accepted') {
+    const maxCapacity = getWeddingConfig().venueCapacity || 300;
+    const existingGuestId = targetIndex >= 0 ? guests[targetIndex].id : undefined;
+    const currentConfirmedHeadcount = guests
+      .filter((g) => g.id !== existingGuestId && g.rsvpStatus === 'accepted')
+      .reduce((sum, g) => sum + (g.confirmedHeadcount || g.partySize || 1), 0);
+
+    if (currentConfirmedHeadcount + clampedHeadcount > maxCapacity) {
+      const remaining = Math.max(0, maxCapacity - currentConfirmedHeadcount);
+      throw new Error(
+        remaining > 0
+          ? `Only ${remaining} seat(s) remain before reaching the maximum venue capacity of ${maxCapacity} guests.`
+          : `Registration is officially closed. The maximum venue capacity of ${maxCapacity} guests has been reached.`
+      );
+    }
+  }
+
   let finalGuest: Guest;
 
   if (targetIndex >= 0) {

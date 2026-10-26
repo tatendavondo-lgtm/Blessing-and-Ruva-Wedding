@@ -284,23 +284,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="bg-white border border-stone-200 shadow-md rounded-2xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs uppercase tracking-wider text-[#886438] font-bold">
-              RSVP Summary
+              RSVP Coming Guests
             </span>
-            <span className="font-mono text-xs text-stone-600">
-              {metrics.totalInvitedGuests} Parties
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+              metrics.confirmedHeadcount >= config.venueCapacity
+                ? 'bg-rose-100 text-rose-800'
+                : 'bg-emerald-100 text-emerald-800'
+            }`}>
+              {metrics.confirmedHeadcount >= config.venueCapacity
+                ? 'REGISTRATION CLOSED'
+                : `${config.venueCapacity - metrics.confirmedHeadcount} Seats Remaining`}
             </span>
           </div>
 
           <div className="space-y-1">
             <div className="flex items-baseline gap-2">
               <span className="font-mono text-3xl font-bold text-stone-900 tabular-nums">
-                {metrics.acceptedCount}
+                {metrics.confirmedHeadcount}
               </span>
-              <span className="text-xs text-emerald-700 font-bold">
-                Accepted ({metrics.acceptanceRate}%)
+              <span className="text-xs text-stone-600">
+                / {config.venueCapacity} Confirmed Attendees
               </span>
             </div>
+            <div className="w-full bg-stone-200 rounded-full h-1.5 overflow-hidden mt-1">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  metrics.confirmedHeadcount >= config.venueCapacity
+                    ? 'bg-rose-600'
+                    : 'bg-[#886438]'
+                }`}
+                style={{ width: `${Math.min(100, Math.round((metrics.confirmedHeadcount / config.venueCapacity) * 100))}%` }}
+              />
+            </div>
             <div className="flex items-center gap-3 text-xs text-stone-600 pt-1">
+              <span>{metrics.acceptedCount} Accepted Parties</span>
+              <span className="text-stone-400">·</span>
               <span>{metrics.declinedCount} Declined</span>
               <span className="text-stone-400">·</span>
               <span>{metrics.pendingCount} Pending</span>
@@ -308,9 +326,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs text-stone-600">
-            <span>Confirmed Headcount:</span>
-            <strong className="text-stone-900 font-mono font-bold">
-              {metrics.confirmedHeadcount} Guests
+            <span>Registration Status:</span>
+            <strong className={`font-mono font-bold ${metrics.confirmedHeadcount >= config.venueCapacity ? 'text-rose-700' : 'text-emerald-700'}`}>
+              {metrics.confirmedHeadcount >= config.venueCapacity ? 'CLOSED (300 Max Reached)' : 'OPEN FOR RSVP'}
             </strong>
           </div>
         </div>

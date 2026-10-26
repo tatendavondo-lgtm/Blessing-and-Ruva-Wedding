@@ -347,6 +347,14 @@ export default function App() {
 
   const checkedInCount = allGuests.filter((g) => g.checkInStatus === 'checked_in').length;
 
+  const totalAcceptedHeadcount = useMemo(() => {
+    return allGuests
+      .filter((g) => g.rsvpStatus === 'accepted')
+      .reduce((sum, g) => sum + (g.confirmedHeadcount || g.partySize || 1), 0);
+  }, [allGuests]);
+
+  const isCapacityReached = totalAcceptedHeadcount >= (config.venueCapacity || 300);
+
   const currentBackdropUrl = config.backgroundImageUrl && !config.backgroundImageUrl.includes('aistudio.google.com')
     ? config.backgroundImageUrl
     : '/assets/images/couple_portrait.jpg';
@@ -417,6 +425,8 @@ export default function App() {
           <InvitationCard
             config={config}
             activeGuest={activeGuest}
+            isCapacityReached={isCapacityReached}
+            totalAcceptedHeadcount={totalAcceptedHeadcount}
             onOpenRSVP={() => setIsRSVPOpen(true)}
             onOpenPass={() => handleOpenPass()}
             onNavigate={(view) => {
@@ -472,6 +482,8 @@ export default function App() {
       {/* RSVP Self-Registration Modal */}
       <RSVPModal
         guest={activeGuest}
+        config={config}
+        allGuests={allGuests}
         isOpen={isRSVPOpen}
         onClose={() => setIsRSVPOpen(false)}
         onRSVPSaved={(updated) => {

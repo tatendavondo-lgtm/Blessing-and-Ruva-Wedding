@@ -8,6 +8,8 @@ interface InvitationCardProps {
   onOpenRSVP: () => void;
   onOpenPass: () => void;
   onNavigate: (view: 'invitation' | 'map' | 'pass' | 'gate' | 'admin') => void;
+  isCapacityReached?: boolean;
+  totalAcceptedHeadcount?: number;
 }
 
 export const InvitationCard: React.FC<InvitationCardProps> = ({
@@ -16,6 +18,8 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
   onOpenRSVP,
   onOpenPass,
   onNavigate: _onNavigate,
+  isCapacityReached = false,
+  totalAcceptedHeadcount = 0,
 }) => {
   const [isPaletteModalOpen, setIsPaletteModalOpen] = useState(false);
 
@@ -331,6 +335,19 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
                     </button>
                   )}
                 </div>
+              </div>
+            ) : isCapacityReached ? (
+              <div className="space-y-2.5 bg-[#141418]/95 backdrop-blur-md border border-rose-500/40 rounded-2xl p-5 sm:p-6 max-w-md mx-auto shadow-2xl text-center animate-in fade-in">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950/80 border border-rose-500/50 text-[10px] text-rose-200 font-cinzel font-bold uppercase tracking-widest">
+                  <span>🔒</span>
+                  <span>Registration Closed · 300 Seats Filled</span>
+                </div>
+                <p className="font-serif-luxury text-xs sm:text-sm text-stone-200 leading-relaxed">
+                  The celebration of Blessing & Ruvarashe at Swan Creek Gardens has reached the maximum permitted capacity of 300 guests. RSVP registrations are now officially closed.
+                </p>
+                <p className="text-[10px] font-cinzel text-[#CFB28A] tracking-wider uppercase pt-1">
+                  Thank you for your overwhelming love & blessings.
+                </p>
               </div>
             ) : (
               <button

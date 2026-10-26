@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
-import { Guest } from '../types/wedding';
+import { Guest, WeddingConfig } from '../types/wedding';
 import { submitGuestSelfRSVP } from '../services/weddingStorage';
 
 interface RSVPModalProps {
@@ -9,6 +9,8 @@ interface RSVPModalProps {
   onClose: () => void;
   onRSVPSaved: (updatedGuest: Guest) => void;
   onOpenPass: (guest: Guest) => void;
+  allGuests?: Guest[];
+  config?: WeddingConfig;
 }
 
 const COMMON_DIETARY_OPTIONS = [
@@ -27,9 +29,10 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
   onClose,
   onRSVPSaved,
   onOpenPass,
+  allGuests = [],
+  config,
 }) => {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [rsvpStatus, setRsvpStatus] = useState<'accepted' | 'declined'>('accepted');
   const [headcount, setHeadcount] = useState<number>(1);
@@ -47,29 +50,50 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
   const initializedModalRef = React.useRef(false);
 
   // Check if this is an open Family link vs Single-Use Individual link
-  const isFamilyInvite = React.useMemo(() => {
-    // 1. If URL has token or pass_, it is ALWAYS strictly individual (Max 2)
+  const isFamilyInvite = useMemo(() => {
+    // 1. If URL has token or pass_ or tok_, it is ALWAYS strictly individual (Max 2)
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.has('token') || params.get('invite')?.startsWith('pass_') || params.get('guest')?.startsWith('pass_')) {
+      const token = params.get('token');
+      const guestParam = params.get('guest') || params.get('invite');
+      if (token || guestParam?.startsWith('pass_') || guestParam?.startsWith('tok_')) {
         return false;
       }
-      if (params.get('type') === 'family') {
+      if (params.get('type') === 'family' || params.get('invite') === 'family' || params.get('section') === 'family') {
         return true;
       }
     }
     // 2. If guest record exists
     if (guest) {
-      if (guest.inviteType === 'individual' || guest.partySize <= 2 || guest.inviteCode?.startsWith('pass_') || guest.inviteCode?.startsWith('tok_')) {
+      if (guest.inviteType === 'individual' || guest.inviteCode?.startsWith('pass_') || guest.inviteCode?.startsWith('tok_')) {
         return false;
       }
-      if (guest.inviteType === 'family' || guest.partySize > 2) {
+      if (guest.inviteType === 'family') {
         return true;
       }
     }
     // 3. Default to false: all single-use and standard links are capped at MAX 2
     return false;
   }, [guest]);
+
+  // Venue Capacity Calculation: Calculate coming guests before checking in (from RSVP confirmed headcounts)
+  const maxCapacity = config?.venueCapacity || 300;
+  const currentGuestId = guest?.id?.startsWith('temp-') ? undefined : guest?.id;
+  const otherAcceptedHeadcount = useMemo(() => {
+    return allGuests
+      .filter((g) => g.id !== currentGuestId && g.rsvpStatus === 'accepted')
+      .reduce((sum, g) => sum + (g.confirmedHeadcount || g.partySize || 1), 0);
+  }, [allGuests, currentGuestId]);
+
+  const seatsRemaining = Math.max(0, maxCapacity - otherAcceptedHeadcount);
+  const isCapacityReached = seatsRemaining <= 0;
+  const isAlreadyAccepted = guest?.rsvpStatus === 'accepted';
+
+  // Maximum allowable guests for this invite session (capped by family/single rule and remaining seats)
+  const maxLimitForInvite = isFamilyInvite ? 4 : 2;
+  const maxAllowedHeadcount = isAlreadyAccepted
+    ? maxLimitForInvite
+    : Math.max(1, Math.min(maxLimitForInvite, seatsRemaining));
 
   useEffect(() => {
     // When the modal closes, reset the flag so next open cleanly populates
@@ -82,21 +106,23 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
     if (!initializedModalRef.current) {
       initializedModalRef.current = true;
 
-      const maxLimit = isFamilyInvite ? 4 : 2;
-
       if (guest) {
         setName(guest.name || '');
-        setEmail(guest.email && !guest.email.includes('@individual.rsvp') && !guest.email.includes('@guest.vows') ? guest.email : '');
         setPhone(guest.phone || '');
         setRsvpStatus(guest.rsvpStatus === 'declined' ? 'declined' : 'accepted');
-        setHeadcount(guest.confirmedHeadcount ? Math.min(guest.confirmedHeadcount, maxLimit) : (guest.partySize ? Math.min(guest.partySize, maxLimit) : 1));
+        setHeadcount(
+          guest.confirmedHeadcount
+            ? Math.min(guest.confirmedHeadcount, maxAllowedHeadcount)
+            : guest.partySize
+            ? Math.min(guest.partySize, maxAllowedHeadcount)
+            : 1
+        );
         setPlusOneName(guest.plusOneName || '');
         setDietary(guest.dietaryRequirements === 'Pending' ? '' : guest.dietaryRequirements || '');
         setSongRequest(guest.songRequest || '');
         setNotes(guest.notes || '');
       } else {
         setName('');
-        setEmail('');
         setPhone('');
         setRsvpStatus('accepted');
         setHeadcount(1);
@@ -111,7 +137,7 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
       setServerGeneralError('');
       setServerValidationSuccess('');
     }
-  }, [isOpen, guest?.id, isFamilyInvite]);
+  }, [isOpen, guest?.id, isFamilyInvite, maxAllowedHeadcount]);
 
   if (!isOpen) return null;
 
@@ -129,12 +155,16 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
     }
 
     if (rsvpStatus === 'accepted') {
-      if (!isFamilyInvite && headcount > 2) {
-        errors.headcount = 'Individual invitations are strictly limited to a maximum of 2 guests.';
-      }
-      if (isFamilyInvite && headcount > 4) {
+      if (isCapacityReached && !isAlreadyAccepted) {
+        errors.headcount = `Registration is closed. All ${maxCapacity} seats for Swan Creek Gardens have been filled.`;
+      } else if (headcount > seatsRemaining && !isAlreadyAccepted) {
+        errors.headcount = `Only ${seatsRemaining} seat(s) remain before reaching the maximum venue capacity of ${maxCapacity} guests.`;
+      } else if (!isFamilyInvite && headcount > 2) {
+        errors.headcount = 'Individual single-use invitations are strictly limited to a maximum of 2 guests.';
+      } else if (isFamilyInvite && headcount > 4) {
         errors.headcount = 'Family group invitations are limited to a maximum of 4 guests.';
       }
+
       if (!dietary.trim()) {
         errors.dietaryRequirements = 'Please specify dietary requirements (or enter "None").';
       }
@@ -153,15 +183,18 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
     try {
       setServerValidationSuccess('Verification complete. Saving response...');
 
-      const effectiveHeadcount = rsvpStatus === 'accepted' ? (isFamilyInvite ? Math.min(headcount, 4) : Math.min(headcount, 2)) : 0;
+      const effectiveHeadcount = rsvpStatus === 'accepted' ? Math.min(headcount, maxAllowedHeadcount) : 0;
       const effectiveToken = guest?.inviteCode || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('token') || undefined : undefined);
+      const fallbackEmail = guest?.email && !guest.email.includes('@individual.rsvp') && !guest.email.includes('@guest.vows')
+        ? guest.email
+        : `${name.trim().toLowerCase().replace(/[^a-z0-9]/g, '') || 'guest'}@guest.vows`;
 
       // Save to database & persistent storage directly
       const savedGuest = submitGuestSelfRSVP({
         existingId: guest?.id?.startsWith('temp-') ? undefined : guest?.id,
         token: effectiveToken,
         name: name.trim(),
-        email: email.trim() || `${name.trim().toLowerCase().replace(/[^a-z0-9]/g, '')}@guest.vows`,
+        email: fallbackEmail,
         phone: phone.trim(),
         rsvpStatus,
         partySize: isFamilyInvite ? 4 : 2,
@@ -195,7 +228,7 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
       }
     } catch (err: any) {
       console.error('RSVP submission error:', err);
-      setServerGeneralError('An unexpected error occurred while saving your RSVP. Please try again.');
+      setServerGeneralError(err.message || 'An unexpected error occurred while saving your RSVP. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -277,9 +310,47 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
           </div>
         )}
 
-        {/* If already used individual invite, hide form to block tampering */}
-        {guest && guest.inviteType === 'individual' && guest.rsvpStatus !== 'pending' ? null : (
+        {/* If 300 capacity reached and guest is not already accepted, show Registration Closed */}
+        {isCapacityReached && !isAlreadyAccepted ? (
+          <div className="p-6 sm:p-8 bg-rose-950/40 border border-rose-500/40 rounded-2xl text-center space-y-4 animate-in fade-in">
+            <div className="w-16 h-16 rounded-full bg-rose-950/80 border-2 border-rose-500/60 mx-auto flex items-center justify-center text-3xl shadow-xl">
+              🔒
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-cinzel text-lg sm:text-xl font-bold text-white uppercase tracking-wider">
+                Registration Closed
+              </h3>
+              <p className="font-serif-luxury text-sm text-[#F5E8D2] font-semibold">
+                Maximum Venue Capacity Reached (300 / 300 Guests)
+              </p>
+              <p className="font-serif-luxury text-xs text-stone-300 max-w-sm mx-auto leading-relaxed pt-1">
+                We are deeply humbled and overwhelmed by the outpouring of love. All 300 venue seats for Blessing & Ruvarashe's wedding celebration at Swan Creek Gardens have now been confirmed.
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-3.5 bg-gradient-to-r from-[#F5E8D2] via-[#CFB28A] to-[#BE9A68] hover:opacity-95 text-black font-cinzel text-xs font-bold uppercase rounded-full shadow-lg transition-all cursor-pointer"
+              >
+                Return to Invitation
+              </button>
+            </div>
+          </div>
+        ) : guest && guest.inviteType === 'individual' && guest.rsvpStatus !== 'pending' ? null : (
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Invitation Category Badge */}
+          <div className="flex items-center justify-between pb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-cinzel tracking-wider font-semibold border bg-[#1B1B22] border-[#CFB28A]/40 text-[#E8D5B5]">
+              {isFamilyInvite
+                ? '👨‍👩‍👧‍👦 Family Group Invitation (Up to 4 Guests)'
+                : '🔒 Single-Use Invitation (Maximum 2 Guests)'}
+            </span>
+            <span className="text-[10px] font-mono text-stone-400">
+              {seatsRemaining} of {maxCapacity} Seats Available
+            </span>
+          </div>
+
           {/* Guest Identity Fields */}
           <div className="space-y-3">
             <div>
@@ -311,70 +382,36 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs font-medium text-[#E0CBAE]">
-                    Phone / WhatsApp Number
-                  </label>
-                  {serverErrors.phone && (
-                    <span className="text-[10px] text-rose-400 font-medium">
-                      Invalid
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value);
-                    if (serverErrors.phone) {
-                      setServerErrors((prev) => ({ ...prev, phone: '' }));
-                    }
-                  }}
-                  placeholder="+263 77 123 4567"
-                  className={`w-full bg-[#1A1A1E] border rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-stone-500 focus:outline-none transition-colors ${
-                    serverErrors.phone
-                      ? 'border-rose-500 focus:border-rose-400'
-                      : 'border-stone-700 focus:border-[#CFB28A]'
-                  }`}
-                />
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-medium text-[#E0CBAE]">
+                  Phone / WhatsApp Number
+                </label>
                 {serverErrors.phone && (
-                  <p className="text-[10px] text-rose-400 mt-1">{serverErrors.phone}</p>
+                  <span className="text-[10px] text-rose-400 font-medium">
+                    Invalid
+                  </span>
                 )}
               </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs font-medium text-[#E0CBAE]">
-                    Email Address
-                  </label>
-                  {serverErrors.email && (
-                    <span className="text-[10px] text-rose-400 font-medium">
-                      Invalid
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (serverErrors.email) {
-                      setServerErrors((prev) => ({ ...prev, email: '' }));
-                    }
-                  }}
-                  placeholder="name@example.com"
-                  className={`w-full bg-[#1A1A1E] border rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-stone-500 focus:outline-none transition-colors ${
-                    serverErrors.email
-                      ? 'border-rose-500 focus:border-rose-400'
-                      : 'border-stone-700 focus:border-[#CFB28A]'
-                  }`}
-                />
-                {serverErrors.email && (
-                  <p className="text-[10px] text-rose-400 mt-1">{serverErrors.email}</p>
-                )}
-              </div>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  if (serverErrors.phone) {
+                    setServerErrors((prev) => ({ ...prev, phone: '' }));
+                  }
+                }}
+                placeholder="+263 77 123 4567"
+                className={`w-full bg-[#1A1A1E] border rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-stone-500 focus:outline-none transition-colors ${
+                  serverErrors.phone
+                    ? 'border-rose-500 focus:border-rose-400'
+                    : 'border-stone-700 focus:border-[#CFB28A]'
+                }`}
+              />
+              {serverErrors.phone && (
+                <p className="text-[10px] text-rose-400 mt-1">{serverErrors.phone}</p>
+              )}
             </div>
           </div>
 
@@ -443,20 +480,28 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
                   className="w-full bg-[#1A1A1E] border border-stone-700 focus:border-[#CFB28A] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none cursor-pointer"
                 >
                   <option value={1}>1 Guest (Just Me)</option>
-                  <option value={2}>2 Guests (Me & +1 Accompanying Guest)</option>
-                  {/* Family links can select up to 4 guests; Individual token links are strictly capped at 2 guests */}
-                  {isFamilyInvite && (
-                    <>
-                      <option value={3}>3 Guests (Family)</option>
-                      <option value={4}>4 Guests (Family - Maximum)</option>
-                    </>
+                  {maxAllowedHeadcount >= 2 && (
+                    <option value={2}>2 Guests (Me & +1 Accompanying Guest)</option>
+                  )}
+                  {isFamilyInvite && maxAllowedHeadcount >= 3 && (
+                    <option value={3}>3 Guests (Family)</option>
+                  )}
+                  {isFamilyInvite && maxAllowedHeadcount >= 4 && (
+                    <option value={4}>4 Guests (Family - Maximum)</option>
                   )}
                 </select>
-                <p className="text-[10px] text-stone-400 mt-0.5">
-                  {isFamilyInvite
-                    ? 'Family Group Invitation: Up to 4 seats allowed.'
-                    : 'Individual Single-Use Invitation: Maximum 2 seats allowed.'}
-                </p>
+                <div className="flex flex-col gap-0.5 text-[10px] text-stone-400 mt-0.5">
+                  <p>
+                    {isFamilyInvite
+                      ? 'Family Group Invitation: Up to 4 seats allowed.'
+                      : 'Single-Use Individual Invitation: Maximum 2 seats allowed.'}
+                  </p>
+                  {seatsRemaining < maxLimitForInvite && (
+                    <p className="text-amber-400 font-medium">
+                      ⚠️ Limited to {seatsRemaining} {seatsRemaining === 1 ? 'seat' : 'seats'} due to remaining capacity before reaching the 300-guest maximum.
+                    </p>
+                  )}
+                </div>
                 {serverErrors.headcount && (
                   <p className="text-[10px] text-rose-400 mt-1">{serverErrors.headcount}</p>
                 )}
