@@ -131,14 +131,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onRefreshData();
   };
 
-  const handleGenerateAndCopyNewToken = () => {
-    const { url, guest } = generateSingleUseIndividualToken();
+  const handleGenerateAndCopyNewSoloToken = () => {
+    const { url } = generateSingleUseIndividualToken(1);
     navigator.clipboard.writeText(url);
     onRefreshData();
     alert(
-      `✓ New Single-Use Invite Token Generated!\n\nLink copied to clipboard:\n${url}\n\n• Each time you click this button, a BRAND NEW link with a unique token is created.\n• Send this to 1 individual. They will fill in their own name and can RSVP for a MAXIMUM of 2 guests.\n• Once used, it is permanently locked and cannot be forwarded or reused.`
+      `✓ New Single-Use Link (Strictly 1 Guest) Generated!\n\nLink copied to clipboard:\n${url}\n\n• Strictly 1 Guest (Solo Pass).\n• The recipient cannot add another guest or plus-one.\n• Once used, it is permanently locked and cannot be forwarded or reused.`
     );
   };
+
+  const handleGenerateAndCopyNewPlusOneToken = () => {
+    const { url } = generateSingleUseIndividualToken(2);
+    navigator.clipboard.writeText(url);
+    onRefreshData();
+    alert(
+      `✓ New Single-Use Link (+1 Accompanying Guest) Generated!\n\nLink copied to clipboard:\n${url}\n\n• Maximum 2 Guests (Recipient + 1 accompanying guest).\n• Once used, it is permanently locked and cannot be forwarded or reused.`
+    );
+  };
+
+  const handleGenerateAndCopyNewToken = handleGenerateAndCopyNewPlusOneToken;
 
   const handleCopyInviteLink = (guest: Guest) => {
     const paramKey = guest.inviteType === 'individual' ? 'token' : 'guest';
@@ -228,12 +239,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
 
           <button
-            onClick={handleGenerateAndCopyNewToken}
+            onClick={handleGenerateAndCopyNewSoloToken}
             className="px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg shadow-sm text-xs font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
-            title="Generates a brand new single-use token link each time you click. Guests fill in their own names (Max 2 seats)."
+            title="Generates a brand new single-use token link strictly for 1 individual (no plus-one allowed)."
           >
             <span>🔒</span>
-            <span>+ Copy New Single-Use Link (Max 2)</span>
+            <span>+ Single-Use (1 Guest Only)</span>
+          </button>
+
+          <button
+            onClick={handleGenerateAndCopyNewPlusOneToken}
+            className="px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg shadow-sm text-xs font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+            title="Generates a brand new single-use token link with a +1 option (Max 2 guests)."
+          >
+            <span>👥</span>
+            <span>+ Single-Use (Max 2 / With +1)</span>
           </button>
 
           <button
@@ -566,9 +586,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <span className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.2 rounded font-semibold">
                                     Family Group
                                   </span>
+                                ) : guest.partySize === 1 || guest.inviteCode?.startsWith('pass_1_') || guest.inviteCode?.startsWith('tok_1_') ? (
+                                  <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.2 rounded font-semibold" title="Strictly 1 Guest (Solo Pass - No Plus-One)">
+                                    Single-Use (Solo · 1)
+                                  </span>
                                 ) : (
-                                  <span className="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.2 rounded font-semibold" title="Single-Use Token Invite">
-                                    Single-Use Token
+                                  <span className="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.2 rounded font-semibold" title="Single-Use Token Invite (Max 2 Guests · Recipient + 1)">
+                                    Single-Use (+1 · Max 2)
                                   </span>
                                 )}
                               </div>

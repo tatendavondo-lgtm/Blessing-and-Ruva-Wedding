@@ -76,6 +76,25 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
     return false;
   }, [guest]);
 
+  // Check if this single-use link is strictly 1 guest only (solo pass, no plus one allowed)
+  const isOneGuestOnly = useMemo(() => {
+    if (isFamilyInvite) return false;
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      const guestParam = params.get('guest') || params.get('invite');
+      if (token?.startsWith('pass_1_') || token?.startsWith('tok_1_') || guestParam?.startsWith('pass_1_') || guestParam?.startsWith('tok_1_') || params.get('seats') === '1') {
+        return true;
+      }
+    }
+    if (guest) {
+      if (guest.partySize === 1 || guest.inviteCode?.startsWith('pass_1_') || guest.inviteCode?.startsWith('tok_1_')) {
+        return true;
+      }
+    }
+    return false;
+  }, [guest, isFamilyInvite]);
+
   // Venue Capacity Calculation: Calculate coming guests before checking in (from RSVP confirmed headcounts)
   const maxCapacity = config?.venueCapacity || 300;
   const currentGuestId = guest?.id?.startsWith('temp-') ? undefined : guest?.id;
@@ -90,7 +109,7 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
   const isAlreadyAccepted = guest?.rsvpStatus === 'accepted';
 
   // Maximum allowable guests for this invite session (capped by family/single rule and remaining seats)
-  const maxLimitForInvite = isFamilyInvite ? 4 : 2;
+  const maxLimitForInvite = isFamilyInvite ? 4 : isOneGuestOnly ? 1 : 2;
   const maxAllowedHeadcount = isAlreadyAccepted
     ? maxLimitForInvite
     : Math.max(1, Math.min(maxLimitForInvite, seatsRemaining));
@@ -111,7 +130,9 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
         setPhone(guest.phone || '');
         setRsvpStatus(guest.rsvpStatus === 'declined' ? 'declined' : 'accepted');
         setHeadcount(
-          guest.confirmedHeadcount
+          isOneGuestOnly
+            ? 1
+            : guest.confirmedHeadcount
             ? Math.min(guest.confirmedHeadcount, maxAllowedHeadcount)
             : guest.partySize
             ? Math.min(guest.partySize, maxAllowedHeadcount)
@@ -137,7 +158,7 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
       setServerGeneralError('');
       setServerValidationSuccess('');
     }
-  }, [isOpen, guest?.id, isFamilyInvite, maxAllowedHeadcount]);
+  }, [isOpen, guest?.id, isFamilyInvite, isOneGuestOnly, maxAllowedHeadcount]);
 
   if (!isOpen) return null;
 
@@ -159,6 +180,8 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
         errors.headcount = `Registration is closed. All ${maxCapacity} seats for Swan Creek Gardens have been filled.`;
       } else if (headcount > seatsRemaining && !isAlreadyAccepted) {
         errors.headcount = `Only ${seatsRemaining} seat(s) remain before reaching the maximum venue capacity of ${maxCapacity} guests.`;
+      } else if (isOneGuestOnly && headcount > 1) {
+        errors.headcount = 'This invitation is strictly valid for 1 guest only (no plus-one).';
       } else if (!isFamilyInvite && headcount > 2) {
         errors.headcount = 'Individual single-use invitations are strictly limited to a maximum of 2 guests.';
       } else if (isFamilyInvite && headcount > 4) {
@@ -168,7 +191,7 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
       if (!dietary.trim()) {
         errors.dietaryRequirements = 'Please specify dietary requirements (or enter "None").';
       }
-      if (headcount > 1 && !plusOneName.trim()) {
+      if (!isOneGuestOnly && headcount > 1 && !plusOneName.trim()) {
         errors.plusOneName = 'Please provide the name of your accompanying guest.';
       }
     }
@@ -183,7 +206,8 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
     try {
       setServerValidationSuccess('Verification complete. Saving response...');
 
-      const effectiveHeadcount = rsvpStatus === 'accepted' ? Math.min(headcount, maxAllowedHeadcount) : 0;
+      const effectiveHeadcount = rsvpStatus === 'accepted' ? (isOneGuestOnly ? 1 : Math.min(headcount, maxAllowedHeadcount)) : 0;
+      const effectivePartySize = isFamilyInvite ? 4 : isOneGuestOnly ? 1 : 2;
       const effectiveToken = guest?.inviteCode || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('token') || undefined : undefined);
       const fallbackEmail = guest?.email && !guest.email.includes('@individual.rsvp') && !guest.email.includes('@guest.vows')
         ? guest.email
@@ -197,9 +221,9 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
         email: fallbackEmail,
         phone: phone.trim(),
         rsvpStatus,
-        partySize: isFamilyInvite ? 4 : 2,
+        partySize: effectivePartySize,
         confirmedHeadcount: effectiveHeadcount,
-        plusOneName: effectiveHeadcount > 1 ? plusOneName.trim() : undefined,
+        plusOneName: !isOneGuestOnly && effectiveHeadcount > 1 ? plusOneName.trim() : undefined,
         dietaryRequirements: dietary.trim() || 'None',
         songRequest: songRequest.trim(),
         notes: notes.trim(),
@@ -344,7 +368,9 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-cinzel tracking-wider font-semibold border bg-[#1B1B22] border-[#CFB28A]/40 text-[#E8D5B5]">
               {isFamilyInvite
                 ? '👨‍👩‍👧‍👦 Family Group Invitation (Up to 4 Guests)'
-                : '🔒 Single-Use Invitation (Maximum 2 Guests)'}
+                : isOneGuestOnly
+                ? '🔒 Single-Use Invitation (Strictly 1 Guest · Solo)'
+                : '🔒 Single-Use Invitation (Max 2 Guests · +1 Allowed)'}
             </span>
             <span className="text-[10px] font-mono text-stone-400">
               {seatsRemaining} of {maxCapacity} Seats Available
@@ -467,48 +493,70 @@ export const RSVPModal: React.FC<RSVPModalProps> = ({
           {rsvpStatus === 'accepted' && (
             <div className="space-y-3.5 pt-1 animate-in fade-in duration-200">
               {/* Headcount Selection */}
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-xs">
-                  <label className="font-medium text-[#E0CBAE]">
-                    Number of Attending Guests *
-                  </label>
-                  <span className="text-[11px] text-stone-400">Adults only</span>
+              {isOneGuestOnly ? (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <label className="font-medium text-[#E0CBAE]">
+                      Guest Admission *
+                    </label>
+                    <span className="text-[11px] text-[#CFB28A] font-semibold">Strictly Solo</span>
+                  </div>
+                  <div className="w-full bg-[#1A1A1E] border border-stone-700/80 rounded-xl px-3.5 py-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-white font-medium">1 Guest (Admit 1 Only)</p>
+                      <p className="text-[10px] text-stone-400 mt-0.5">
+                        This personalized pass is strictly for 1 individual. Accompanying plus-ones are not permitted on this invitation.
+                      </p>
+                    </div>
+                    <span className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-cinzel font-bold bg-[#CFB28A]/20 border border-[#CFB28A]/40 text-[#F5E8D2] tracking-wider uppercase ml-2">
+                      1 Seat
+                    </span>
+                  </div>
                 </div>
-                <select
-                  value={headcount}
-                  onChange={(e) => setHeadcount(Number(e.target.value))}
-                  className="w-full bg-[#1A1A1E] border border-stone-700 focus:border-[#CFB28A] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none cursor-pointer"
-                >
-                  <option value={1}>1 Guest (Just Me)</option>
-                  {maxAllowedHeadcount >= 2 && (
-                    <option value={2}>2 Guests (Me & +1 Accompanying Guest)</option>
-                  )}
-                  {isFamilyInvite && maxAllowedHeadcount >= 3 && (
-                    <option value={3}>3 Guests (Family)</option>
-                  )}
-                  {isFamilyInvite && maxAllowedHeadcount >= 4 && (
-                    <option value={4}>4 Guests (Family - Maximum)</option>
-                  )}
-                </select>
-                <div className="flex flex-col gap-0.5 text-[10px] text-stone-400 mt-0.5">
-                  <p>
-                    {isFamilyInvite
-                      ? 'Family Group Invitation: Up to 4 seats allowed.'
-                      : 'Single-Use Individual Invitation: Maximum 2 seats allowed.'}
-                  </p>
-                  {seatsRemaining < maxLimitForInvite && (
-                    <p className="text-amber-400 font-medium">
-                      ⚠️ Limited to {seatsRemaining} {seatsRemaining === 1 ? 'seat' : 'seats'} due to remaining capacity before reaching the 300-guest maximum.
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <label className="font-medium text-[#E0CBAE]">
+                      Number of Attending Guests *
+                    </label>
+                    <span className="text-[11px] text-stone-400">Adults only</span>
+                  </div>
+                  <select
+                    value={headcount}
+                    onChange={(e) => setHeadcount(Number(e.target.value))}
+                    className="w-full bg-[#1A1A1E] border border-stone-700 focus:border-[#CFB28A] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none cursor-pointer"
+                  >
+                    <option value={1}>1 Guest (Just Me)</option>
+                    {maxAllowedHeadcount >= 2 && (
+                      <option value={2}>2 Guests (Me & +1 Accompanying Guest)</option>
+                    )}
+                    {isFamilyInvite && maxAllowedHeadcount >= 3 && (
+                      <option value={3}>3 Guests (Family)</option>
+                    )}
+                    {isFamilyInvite && maxAllowedHeadcount >= 4 && (
+                      <option value={4}>4 Guests (Family - Maximum)</option>
+                    )}
+                  </select>
+                  <div className="flex flex-col gap-0.5 text-[10px] text-stone-400 mt-0.5">
+                    <p>
+                      {isFamilyInvite
+                        ? 'Family Group Invitation: Up to 4 seats allowed.'
+                        : 'Single-Use Individual Invitation: Maximum 2 seats allowed.'}
                     </p>
+                    {seatsRemaining < maxLimitForInvite && (
+                      <p className="text-amber-400 font-medium">
+                        ⚠️ Limited to {seatsRemaining} {seatsRemaining === 1 ? 'seat' : 'seats'} due to remaining capacity before reaching the 300-guest maximum.
+                      </p>
+                    )}
+                  </div>
+                  {serverErrors.headcount && (
+                    <p className="text-[10px] text-rose-400 mt-1">{serverErrors.headcount}</p>
                   )}
                 </div>
-                {serverErrors.headcount && (
-                  <p className="text-[10px] text-rose-400 mt-1">{serverErrors.headcount}</p>
-                )}
-              </div>
+              )}
 
-              {/* Plus-one name if headcount > 1 */}
-              {headcount > 1 && (
+              {/* Plus-one name if headcount > 1 and not solo */}
+              {!isOneGuestOnly && headcount > 1 && (
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
                     <label className="block text-xs font-medium text-[#E0CBAE]">

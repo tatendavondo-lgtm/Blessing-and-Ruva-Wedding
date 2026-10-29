@@ -284,8 +284,9 @@ export default function App() {
           return;
         }
       }
-      // If it's a single-use token link, immediately prepare activeGuest as an individual guest (Max 2)
+      // If it's a single-use token link, immediately prepare activeGuest as an individual guest (Solo 1 or Max 2)
       if (token || guestParam.startsWith('pass_') || guestParam.startsWith('tok_')) {
+        const isOneGuestOnly = guestParam.startsWith('pass_1_') || guestParam.startsWith('tok_1_') || params.get('seats') === '1';
         setActiveGuest((prev) => {
           if (prev && prev.inviteCode.toLowerCase() === guestParam.toLowerCase()) return prev;
           return {
@@ -294,7 +295,7 @@ export default function App() {
             email: '',
             inviteCode: guestParam,
             ticketCode: '',
-            partySize: 2,
+            partySize: isOneGuestOnly ? 1 : 2,
             confirmedHeadcount: 0,
             rsvpStatus: 'pending',
             dietaryRequirements: 'None',

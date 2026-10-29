@@ -192,8 +192,9 @@ export function submitGuestSelfRSVP(data: {
     targetIndex = guests.findIndex((g) => g.email.toLowerCase() === data.email.toLowerCase());
   }
 
-  const isIndividual = data.inviteType === 'individual' || data.token?.startsWith('pass_') || (targetIndex >= 0 && guests[targetIndex].inviteType === 'individual');
-  const maxCap = isIndividual ? 2 : 4;
+  const isIndividual = data.inviteType === 'individual' || data.token?.startsWith('pass_') || data.token?.startsWith('tok_') || (targetIndex >= 0 && guests[targetIndex].inviteType === 'individual');
+  const isSolo = data.partySize === 1 || data.token?.startsWith('pass_1_') || data.token?.startsWith('tok_1_') || (targetIndex >= 0 && guests[targetIndex].partySize === 1);
+  const maxCap = data.inviteType === 'family' ? 4 : isSolo ? 1 : 2;
   const clampedHeadcount = data.rsvpStatus === 'accepted' ? Math.min(Math.max(data.confirmedHeadcount, 1), maxCap) : 0;
 
   // Capacity Enforcement: Calculate coming guests before checking in (based on RSVP confirmed headcounts)
@@ -226,8 +227,8 @@ export function submitGuestSelfRSVP(data: {
       phone: data.phone?.trim() || existing.phone,
       rsvpStatus: data.rsvpStatus,
       confirmedHeadcount: clampedHeadcount,
-      partySize: isIndividual ? 2 : Math.max(existing.partySize, clampedHeadcount),
-      plusOneName: clampedHeadcount > 1 ? (data.plusOneName?.trim() || undefined) : undefined,
+      partySize: isSolo ? 1 : isIndividual ? 2 : Math.max(existing.partySize, clampedHeadcount),
+      plusOneName: !isSolo && clampedHeadcount > 1 ? (data.plusOneName?.trim() || undefined) : undefined,
       dietaryRequirements: data.dietaryRequirements?.trim() || 'None',
       songRequest: data.songRequest?.trim() || existing.songRequest,
       notes: data.notes?.trim() || existing.notes,
@@ -248,9 +249,9 @@ export function submitGuestSelfRSVP(data: {
       inviteCode,
       ticketCode,
       rsvpStatus: data.rsvpStatus,
-      partySize: isIndividual ? 2 : 4,
+      partySize: isSolo ? 1 : isIndividual ? 2 : 4,
       confirmedHeadcount: clampedHeadcount,
-      plusOneName: clampedHeadcount > 1 ? data.plusOneName?.trim() : undefined,
+      plusOneName: !isSolo && clampedHeadcount > 1 ? data.plusOneName?.trim() : undefined,
       dietaryRequirements: data.dietaryRequirements?.trim() || 'None',
       songRequest: data.songRequest?.trim(),
       notes: data.notes?.trim(),
@@ -486,15 +487,17 @@ export function addGuest(newGuest: Omit<Guest, 'id' | 'ticketCode' | 'checkInSta
 
 /**
  * Generate a single-use token invite for an individual guest from Admin Dashboard.
- * Admin does NOT need to enter the guest's name upfront.
- * The recipient enters their own name and answers RSVP questions (Max 2 guests).
+ * Supports:
+ * - seats = 1: Strictly 1 guest only (solo, no plus-one)
+ * - seats = 2: Up to 2 guests (primary guest + optional plus-one)
  * Once submitted, this link/token is permanently locked against reuse or forwarding.
  */
-export function generateSingleUseIndividualToken(): { guest: Guest; url: string } {
+export function generateSingleUseIndividualToken(seats: 1 | 2 = 2): { guest: Guest; url: string } {
   const guests = getGuests();
   const id = 'g-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6);
   const ticketCode = generateRandom4DigitCode(guests);
-  const token = 'pass_' + Math.random().toString(36).substring(2, 7) + Math.random().toString(36).substring(2, 6);
+  const prefix = seats === 1 ? 'pass_1_' : 'pass_2_';
+  const token = prefix + Math.random().toString(36).substring(2, 7) + Math.random().toString(36).substring(2, 6);
 
   const guest: Guest = {
     id,
@@ -502,7 +505,7 @@ export function generateSingleUseIndividualToken(): { guest: Guest; url: string 
     email: '',
     inviteCode: token,
     ticketCode,
-    partySize: 2, // Maximum 2 guests allowed for individual links
+    partySize: seats, // 1 for solo links, 2 for plus-one links
     confirmedHeadcount: 0,
     rsvpStatus: 'pending',
     dietaryRequirements: 'None',
@@ -517,8 +520,8 @@ export function generateSingleUseIndividualToken(): { guest: Guest; url: string 
 
   logActivity({
     type: 'rsvp_updated',
-    guestName: 'Single-Use Pass Token',
-    details: `Generated fresh single-use individual RSVP link (Token: ${token}, Max 2 Guests)`,
+    guestName: seats === 1 ? 'Single-Use Solo Pass Token' : 'Single-Use +1 Pass Token',
+    details: `Generated fresh single-use individual RSVP link (Token: ${token}, ${seats === 1 ? 'Strictly 1 Guest' : 'Max 2 Guests'})`,
     severity: 'info',
   });
 
